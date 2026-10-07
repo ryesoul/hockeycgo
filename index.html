@@ -113,7 +113,7 @@
                     </div>
 
                     <div id="presence-categories-container" class="space-y-4 max-h-96 overflow-y-auto pr-1">
-                        <!-- Généré dynamiquement en JS par catégorie -->
+                        <!-- Généré dynamiquement en JS -->
                     </div>
                 </div>
             </div>
@@ -289,7 +289,7 @@
                 </div>
             </div>
 
-            <!-- Carte Coûts & Bilan Financier (Visible uniquement par ADMIN) -->
+            <!-- Carte Coûts & Bilan Financier -->
             <div id="finance-summary-cards" class="grid md:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Coût Saison (Régulier)</label>
@@ -349,7 +349,7 @@
                 </div>
             </div>
 
-            <!-- Liste Remplaçants (Suivi Partie par Partie) - Visible par tous / Éditable si connecté -->
+            <!-- Liste Remplaçants (Suivi Partie par Partie) -->
             <div class="bg-white rounded-2xl shadow-sm p-6 border border-amber-200">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                     <div>
@@ -645,17 +645,33 @@
         </div>
     </div>
 
+    <!-- SCRIPT FIREBASE ET APPLICATION -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <!-- SCRIPT APPLICATION -->
-    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9tOU2IQGPmTSSA1hQv7ttDrxxU-zWems",
+            authDomain: "hockeycgo.firebaseapp.com",
+            projectId: "hockeycgo",
+            storageBucket: "hockeycgo.firebasestorage.app",
+            messagingSenderId: "961892069132",
+            appId: "1:961892069132:web:5944387a9f95b6abfd2329",
+            measurementId: "G-38Z4J4VP7P"
+        };
+
+        // Initialisation de Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
         // Comptes administrateurs / gestionnaires enregistrés par défaut
         const DEFAULT_USERS = [
             { username: "mbellemare", pass: "Pompier09!", role: "ADMIN" },
             { username: "eric", pass: "hockey01", role: "Gestionnaire" }
         ];
-
-        let users = [];
-        let currentUser = null; // null = Read-Only mode
 
         // Exactement la liste des 24 joueurs officiels + Subs
         const OFFICIAL_24_PLAYERS = [
@@ -700,40 +716,71 @@
             }
         ];
 
+        let users = [];
+        let currentUser = null; // null = Read-Only mode
         let players = [];
         let seasonCost = 592;
         let subRate = 25;
         let selectedPresenceIds = new Set();
         let currentLineup = { blanc: [], multicolore: [] };
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadStorage();
-            checkAuthSession();
-            renderPresenceSelector();
-            renderPlayersTable();
-            renderFinanceTable();
-            renderSubFinanceTable();
-            renderUsersTable();
-            updateFinanceStats();
-            generateTeams();
-            applyPermissionUI();
-        });
+        // Synchronisation Firebase (Firestore)
+        const leagueDocRef = doc(db, "ligue", "data");
 
-        // --- AUTHENTIFICATION & UTILISATEURS ---
-        function loadUsers() {
-            const savedUsers = localStorage.getItem('hockey_app_users');
-            if (savedUsers) {
-                users = JSON.parse(savedUsers);
-            } else {
-                users = [...DEFAULT_USERS];
-                saveUsersStorage();
+        function initFirebaseSync() {
+            onSnapshot(leagueDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    players = data.players || [];
+                    users = data.users || [...DEFAULT_USERS];
+                    seasonCost = data.seasonCost !== undefined ? data.seasonCost : 592;
+                    subRate = data.subRate !== undefined ? data.subRate : 25;
+                } else {
+                    players = [...OFFICIAL_24_PLAYERS];
+                    users = [...DEFAULT_USERS];
+                    seasonCost = 592;
+                    subRate = 25;
+                    saveStorage();
+                }
+
+                document.getElementById('season-cost-input').value = seasonCost;
+                document.getElementById('sub-cost-input').value = subRate;
+
+                if (selectedPresenceIds.size === 0) {
+                    checkOnlyRegulars();
+                } else {
+                    renderPresenceSelector();
+                }
+
+                checkAuthSession();
+                renderPlayersTable();
+                renderFinanceTable();
+                renderSubFinanceTable();
+                renderUsersTable();
+                updateFinanceStats();
+                generateTeams();
+                applyPermissionUI();
+            });
+        }
+
+        async function saveStorage() {
+            try {
+                await setDoc(leagueDocRef, {
+                    players: players,
+                    users: users,
+                    seasonCost: seasonCost,
+                    subRate: subRate
+                });
+            } catch (error) {
+                console.error("Erreur lors de la sauvegarde Firebase :", error);
             }
         }
 
-        function saveUsersStorage() {
-            localStorage.setItem('hockey_app_users', JSON.stringify(users));
-        }
+        window.addEventListener('DOMContentLoaded', () => {
+            initFirebaseSync();
+        });
 
+        // --- AUTHENTIFICATION & UTILISATEURS ---
         function getUserRole(username) {
             const u = users.find(x => x.username === username);
             return u ? u.role : null;
@@ -822,14 +869,12 @@
                 if(banner) banner.classList.remove('hidden');
             }
 
-            // Affichage de l'onglet Admin si le rôle est ADMIN
             if (role === 'ADMIN') {
                 if(tabAdmin) tabAdmin.classList.remove('hidden');
             } else {
                 if(tabAdmin) tabAdmin.classList.add('hidden');
             }
 
-            // Gérer la visibilité des boutons d'action génériques
             const adminButtons = document.querySelectorAll('.admin-only');
             adminButtons.forEach(el => {
                 if (currentUser) {
@@ -839,7 +884,6 @@
                 }
             });
 
-            // LOGIQUE DROITS ADMIN (Cotisations Réguliers)
             const isAdmin = (role === 'ADMIN');
             const regSection = document.getElementById('finance-regular-section');
             const summaryCards = document.getElementById('finance-summary-cards');
@@ -855,7 +899,6 @@
                 if(mbMsg) mbMsg.classList.remove('hidden');
             }
 
-            // Désactiver/Activer les inputs financiers
             document.getElementById('season-cost-input').disabled = !isAdmin;
             document.getElementById('sub-cost-input').disabled = !currentUser;
 
@@ -905,18 +948,15 @@
 
             if (!username) return;
 
-            // Mode Édition
             if (origUsername) {
                 const existingUserIndex = users.findIndex(u => u.username === origUsername);
                 if (existingUserIndex === -1) return;
 
-                // Vérifier si le nouveau nom entre en conflit avec un autre compte
                 if (username.toLowerCase() !== origUsername.toLowerCase() && users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
                     alert("Un autre utilisateur utilise déjà ce nom d'utilisateur.");
                     return;
                 }
 
-                // Protections compte principal / utilisateur en cours
                 if (origUsername === 'mbellemare' && username !== 'mbellemare') {
                     alert("Le nom d'utilisateur principal (mbellemare) ne peut pas être renommé.");
                     return;
@@ -928,13 +968,12 @@
                 }
                 users[existingUserIndex].role = role;
 
-                // Si l'admin a modifié son propre compte connecté
                 if (origUsername === currentUser) {
                     currentUser = username;
                     sessionStorage.setItem('hockey_admin_user', currentUser);
                 }
 
-            } else { // Mode Création
+            } else {
                 if (!pass) {
                     alert("Veuillez saisir un mot de passe.");
                     return;
@@ -948,9 +987,7 @@
                 users.push({ username, pass, role });
             }
 
-            saveUsersStorage();
-            renderUsersTable();
-            applyPermissionUI();
+            saveStorage();
             closeUserModal();
         }
 
@@ -972,9 +1009,7 @@
             const u = users.find(x => x.username === username);
             if (u) {
                 u.role = newRole;
-                saveUsersStorage();
-                renderUsersTable();
-                applyPermissionUI();
+                saveStorage();
             }
         }
 
@@ -993,8 +1028,7 @@
 
             if (confirm(`Voulez-vous vraiment supprimer l'utilisateur "${username}" ?`)) {
                 users = users.filter(u => u.username !== username);
-                saveUsersStorage();
-                renderUsersTable();
+                saveStorage();
             }
         }
 
@@ -1042,49 +1076,11 @@
             });
         }
 
-        function loadStorage() {
-            loadUsers();
-            const savedPlayers = localStorage.getItem('hockey_players_v5');
-            const savedCost = localStorage.getItem('hockey_season_cost');
-            const savedSubRate = localStorage.getItem('hockey_sub_rate');
-
-            if (savedPlayers) {
-                players = JSON.parse(savedPlayers);
-            } else {
-                players = [...OFFICIAL_24_PLAYERS];
-                saveStorage();
-            }
-
-            if (savedCost) {
-                seasonCost = parseFloat(savedCost);
-                document.getElementById('season-cost-input').value = seasonCost;
-            }
-
-            if (savedSubRate) {
-                subRate = parseFloat(savedSubRate);
-                document.getElementById('sub-cost-input').value = subRate;
-            }
-
-            checkOnlyRegulars();
-        }
-
-        function saveStorage() {
-            localStorage.setItem('hockey_players_v5', JSON.stringify(players));
-            localStorage.setItem('hockey_season_cost', seasonCost.toString());
-            localStorage.setItem('hockey_sub_rate', subRate.toString());
-        }
-
         function resetDefaultPlayers() {
             if(!currentUser) return;
             if(confirm("Réinitialiser la liste exacte des joueurs et réinitialiser les données ?")) {
                 players = [...OFFICIAL_24_PLAYERS];
                 saveStorage();
-                checkOnlyRegulars();
-                renderPlayersTable();
-                renderFinanceTable();
-                renderSubFinanceTable();
-                updateFinanceStats();
-                generateTeams();
             }
         }
 
@@ -1092,17 +1088,12 @@
             if(getUserRole(currentUser) !== 'ADMIN') return;
             seasonCost = parseFloat(val) || 0;
             saveStorage();
-            renderPlayersTable();
-            renderFinanceTable();
-            updateFinanceStats();
         }
 
         function updateSubCost(val) {
             if(!currentUser) return;
             subRate = parseFloat(val) || 25;
             saveStorage();
-            renderSubFinanceTable();
-            updateFinanceStats();
         }
 
         function checkOnlyRegulars() {
@@ -1382,7 +1373,6 @@
 
             const isAdmin = (getUserRole(currentUser) === 'ADMIN');
 
-            // Masquer / afficher l'en-tête de la colonne "Statut Paiement"
             const statusColHeader = document.querySelector('.payment-status-col');
             if(statusColHeader) {
                 if(isAdmin) {
@@ -1722,11 +1712,6 @@
             }
 
             saveStorage();
-            renderPresenceSelector();
-            renderPlayersTable();
-            renderFinanceTable();
-            renderSubFinanceTable();
-            updateFinanceStats();
             closePlayerModal();
         }
 
@@ -1736,11 +1721,6 @@
                 players = players.filter(p => p.id !== id);
                 selectedPresenceIds.delete(id);
                 saveStorage();
-                renderPresenceSelector();
-                renderPlayersTable();
-                renderFinanceTable();
-                renderSubFinanceTable();
-                updateFinanceStats();
             }
         }
 
@@ -1811,9 +1791,6 @@
                 });
 
                 saveStorage();
-                renderSubFinanceTable();
-                renderPlayersTable();
-                updateFinanceStats();
                 closeSubGameModal();
             }
         }
@@ -1827,9 +1804,6 @@
                     game.status = 'PAYE';
                     if (game.method === 'Non spécifié') game.method = 'Interac / Virement';
                     saveStorage();
-                    renderSubFinanceTable();
-                    renderPlayersTable();
-                    updateFinanceStats();
                 }
             }
         }
@@ -1841,15 +1815,24 @@
                 if (player && player.subGames) {
                     player.subGames = player.subGames.filter(g => g.id !== gameId);
                     saveStorage();
-                    renderSubFinanceTable();
-                    renderPlayersTable();
-                    updateFinanceStats();
                     if(!document.getElementById('player-modal').classList.contains('hidden')) {
                         renderModalSubGamesList();
                     }
                 }
             }
         }
+
+        // Exposer les fonctions nécessaires à la portée globale (window) pour les gestionnaires onclick HTML
+        Object.assign(window, {
+            switchTab, openLoginModal, closeLoginModal, handleLogin, logout,
+            checkOnlyRegulars, checkAll, generateTeams, movePlayer, copyLineupText,
+            renderPlayersTable, resetDefaultPlayers, openPlayerModal, closePlayerModal,
+            toggleModalFieldsByType, savePlayer, deletePlayer, updateSeasonCost,
+            updateSubCost, openSubGameModal, openSubGameModalForPlayer,
+            openSubGameModalFromPlayer, closeSubGameModal, saveSubGame,
+            markSubGamePaid, deleteSubGame, togglePresence, openAddUserModal,
+            openEditUserModal, closeUserModal, saveUser, changeUserRole, deleteUser
+        });
     </script>
 </body>
 </html>
