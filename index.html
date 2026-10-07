@@ -43,15 +43,18 @@
                 </div>
 
                 <!-- Navigation par Onglets -->
-                <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
-                    <button onclick="switchTab('shuffle')" id="tab-btn-shuffle" class="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow">
-                        <i class="fa-solid fa-shuffle mr-2"></i>Alignement (Shuffle)
+                <div class="flex flex-wrap bg-slate-800 p-1 rounded-xl border border-slate-700">
+                    <button onclick="switchTab('shuffle')" id="tab-btn-shuffle" class="px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow">
+                        <i class="fa-solid fa-shuffle mr-1.5"></i>Alignement
                     </button>
-                    <button onclick="switchTab('joueurs')" id="tab-btn-joueurs" class="px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
-                        <i class="fa-solid fa-users mr-2"></i>Liste des Joueurs
+                    <button onclick="switchTab('joueurs')" id="tab-btn-joueurs" class="px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-users mr-1.5"></i>Joueurs
                     </button>
-                    <button onclick="switchTab('finance')" id="tab-btn-finance" class="px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
-                        <i class="fa-solid fa-wallet mr-2"></i>Finances & Paiements
+                    <button onclick="switchTab('finance')" id="tab-btn-finance" class="px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-wallet mr-1.5"></i>Finances
+                    </button>
+                    <button onclick="switchTab('admin')" id="tab-btn-admin" class="hidden px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-user-gear mr-1.5"></i>Administration
                     </button>
                 </div>
             </div>
@@ -278,15 +281,15 @@
         <!-- ================= SECTION 3 : FINANCES & PAIEMENTS ================= -->
         <section id="section-finance" class="hidden space-y-6">
             
-            <!-- Message de restriction pour les Réguliers si non mbellemare -->
+            <!-- Message de restriction pour les Réguliers si non ADMIN -->
             <div id="finance-mbellemare-restricted-msg" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs flex items-center gap-3">
                 <i class="fa-solid fa-lock text-xl text-amber-600"></i>
                 <div>
-                    <b>Information :</b> La section de gestion des <b>cotisations des joueurs réguliers</b> est réservée exclusivement à l'administrateur <b>mbellemare</b>. Seul le suivi des remplaçants vous est accessible.
+                    <b>Information :</b> La section de gestion des <b>cotisations des joueurs réguliers</b> est réservée exclusivement aux utilisateurs ayant le rôle <b>ADMIN</b>. Seul le suivi des remplaçants vous est accessible.
                 </div>
             </div>
 
-            <!-- Carte Coûts & Bilan Financier (Visible uniquement par mbellemare) -->
+            <!-- Carte Coûts & Bilan Financier (Visible uniquement par ADMIN) -->
             <div id="finance-summary-cards" class="grid md:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Coût Saison (Régulier)</label>
@@ -320,7 +323,7 @@
                 </div>
             </div>
 
-            <!-- Liste Réguliers (Réservé exclusivement à mbellemare) -->
+            <!-- Liste Réguliers (Réservé exclusivement à ADMIN) -->
             <div id="finance-regular-section" class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
                 <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i> Cotisations des Joueurs Réguliers (Saison)
@@ -380,6 +383,40 @@
             </div>
         </section>
 
+        <!-- ================= SECTION 4 : ADMINISTRATION DES UTILISATEURS ================= -->
+        <section id="section-admin" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear text-cyan-600"></i> Gestion des Utilisateurs & Accès
+                        </h2>
+                        <p class="text-sm text-slate-500">Ajoutez de nouveaux utilisateurs, définissez leur niveau d'accès ou supprimez des comptes.</p>
+                    </div>
+                    <button onclick="openAddUserModal()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-user-plus"></i> Nouvel Utilisateur
+                    </button>
+                </div>
+
+                <!-- Tableau de la liste des utilisateurs -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Nom d'utilisateur</th>
+                                <th class="p-3">Niveau d'accès (Rôle)</th>
+                                <th class="p-3">Permissions</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-100">
+                            <!-- Généré par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- ================= MODAL DE CONNEXION ADMIN ================= -->
@@ -410,6 +447,49 @@
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
                     <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
                     <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg shadow">Se connecter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL D'AJOUT D'UTILISATEUR ================= -->
+    <div id="user-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-cyan-600"></i> Ajouter un Utilisateur
+                </h3>
+                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form id="user-form" onsubmit="saveUser(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nom d'utilisateur</label>
+                    <input type="text" id="user-username" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mot de passe</label>
+                    <input type="password" id="user-password" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Niveau d'accès (Rôle)</label>
+                    <select id="user-role" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <option value="ADMIN">ADMIN (Accès complet)</option>
+                        <option value="Gestionnaire">Gestionnaire (Alignements & Remplaçants)</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-500 space-y-1">
+                    <p class="font-bold text-slate-700">Détails des rôles :</p>
+                    <p>• <b>ADMIN :</b> Accès à tout faire (Joueurs, Cotisations, Alignements & Gestion Utilisateurs).</p>
+                    <p>• <b>Gestionnaire :</b> Générer les alignements et gérer les paiements des remplaçants.</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg shadow">Créer l'utilisateur</button>
                 </div>
             </form>
         </div>
@@ -566,12 +646,13 @@
 
     <!-- SCRIPT APPLICATION -->
     <script>
-        // Comptes d'administration enregistrés
-        const ADMIN_CREDENTIALS = {
-            "mbellemare": "Pompier09!",
-            "eric": "hockey01"
-        };
+        // Comptes administrateurs / gestionnaires enregistrés par défaut
+        const DEFAULT_USERS = [
+            { username: "mbellemare", pass: "Pompier09!", role: "ADMIN" },
+            { username: "eric", pass: "hockey01", role: "Gestionnaire" }
+        ];
 
+        let users = [];
         let currentUser = null; // null = Read-Only mode
 
         // Exactement la liste des 24 joueurs officiels + Subs
@@ -624,22 +705,48 @@
         let currentLineup = { blanc: [], multicolore: [] };
 
         window.addEventListener('DOMContentLoaded', () => {
-            checkAuthSession();
             loadStorage();
+            checkAuthSession();
             renderPresenceSelector();
             renderPlayersTable();
             renderFinanceTable();
             renderSubFinanceTable();
+            renderUsersTable();
             updateFinanceStats();
             generateTeams();
             applyPermissionUI();
         });
 
-        // --- AUTHENTIFICATION ---
+        // --- AUTHENTIFICATION & UTILISATEURS ---
+        function loadUsers() {
+            const savedUsers = localStorage.getItem('hockey_app_users');
+            if (savedUsers) {
+                users = JSON.parse(savedUsers);
+            } else {
+                users = [...DEFAULT_USERS];
+                saveUsersStorage();
+            }
+        }
+
+        function saveUsersStorage() {
+            localStorage.setItem('hockey_app_users', JSON.stringify(users));
+        }
+
+        function getUserRole(username) {
+            const u = users.find(x => x.username === username);
+            return u ? u.role : null;
+        }
+
         function checkAuthSession() {
             const loggedUser = sessionStorage.getItem('hockey_admin_user');
             if (loggedUser) {
-                currentUser = loggedUser;
+                const u = users.find(x => x.username === loggedUser);
+                if (u) {
+                    currentUser = u.username;
+                } else {
+                    sessionStorage.removeItem('hockey_admin_user');
+                    currentUser = null;
+                }
             }
         }
 
@@ -655,18 +762,21 @@
 
         function handleLogin(e) {
             e.preventDefault();
-            const user = document.getElementById('login-username').value.trim();
-            const pass = document.getElementById('login-password').value.trim();
+            const userVal = document.getElementById('login-username').value.trim();
+            const passVal = document.getElementById('login-password').value.trim();
 
-            if (ADMIN_CREDENTIALS[user] && ADMIN_CREDENTIALS[user] === pass) {
-                currentUser = user;
-                sessionStorage.setItem('hockey_admin_user', user);
+            const foundUser = users.find(u => u.username === userVal && u.pass === passVal);
+
+            if (foundUser) {
+                currentUser = foundUser.username;
+                sessionStorage.setItem('hockey_admin_user', currentUser);
                 closeLoginModal();
                 applyPermissionUI();
                 renderPresenceSelector();
                 renderPlayersTable();
                 renderFinanceTable();
                 renderSubFinanceTable();
+                renderUsersTable();
                 renderTeams();
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
@@ -676,6 +786,7 @@
         function logout() {
             currentUser = null;
             sessionStorage.removeItem('hockey_admin_user');
+            switchTab('shuffle');
             applyPermissionUI();
             renderPresenceSelector();
             renderPlayersTable();
@@ -687,11 +798,14 @@
         function applyPermissionUI() {
             const container = document.getElementById('auth-status-container');
             const banner = document.getElementById('readonly-banner');
+            const tabAdmin = document.getElementById('tab-btn-admin');
+
+            const role = getUserRole(currentUser);
 
             if (currentUser) {
                 container.innerHTML = `
                     <span class="text-emerald-400 font-bold flex items-center gap-1.5">
-                        <i class="fa-solid fa-user-check"></i> Connecté: <b>${currentUser}</b>
+                        <i class="fa-solid fa-user-check"></i> <b>${currentUser}</b> <span class="bg-slate-700 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded font-bold">${role}</span>
                     </span>
                     <button onclick="logout()" class="ml-2 px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded font-bold text-[11px]">Déconnexion</button>
                 `;
@@ -706,7 +820,14 @@
                 if(banner) banner.classList.remove('hidden');
             }
 
-            // Gérer la visibilité des composants d'administration généraux
+            // Affichage de l'onglet Admin si le rôle est ADMIN
+            if (role === 'ADMIN') {
+                if(tabAdmin) tabAdmin.classList.remove('hidden');
+            } else {
+                if(tabAdmin) tabAdmin.classList.add('hidden');
+            }
+
+            // Gérer la visibilité des boutons d'action génériques
             const adminButtons = document.querySelectorAll('.admin-only');
             adminButtons.forEach(el => {
                 if (currentUser) {
@@ -716,13 +837,13 @@
                 }
             });
 
-            // LOGIQUE DROITS MBELLEMARE (Cotisations Réguliers)
-            const isMBellemare = (currentUser === 'mbellemare');
+            // LOGIQUE DROITS ADMIN (Cotisations Réguliers)
+            const isAdmin = (role === 'ADMIN');
             const regSection = document.getElementById('finance-regular-section');
             const summaryCards = document.getElementById('finance-summary-cards');
             const mbMsg = document.getElementById('finance-mbellemare-restricted-msg');
 
-            if (isMBellemare) {
+            if (isAdmin) {
                 if(regSection) regSection.classList.remove('hidden');
                 if(summaryCards) summaryCards.classList.remove('hidden');
                 if(mbMsg) mbMsg.classList.add('hidden');
@@ -733,14 +854,101 @@
             }
 
             // Désactiver/Activer les inputs financiers
-            document.getElementById('season-cost-input').disabled = !isMBellemare;
+            document.getElementById('season-cost-input').disabled = !isAdmin;
             document.getElementById('sub-cost-input').disabled = !currentUser;
 
-            // Mettre à jour l'affichage de la table des joueurs
             renderPlayersTable();
         }
 
+        // --- GESTION DES UTILISATEURS (ADMIN) ---
+        function openAddUserModal() {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+            document.getElementById('user-form').reset();
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('user-modal').classList.add('hidden');
+        }
+
+        function saveUser(e) {
+            e.preventDefault();
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+
+            const username = document.getElementById('user-username').value.trim();
+            const pass = document.getElementById('user-password').value.trim();
+            const role = document.getElementById('user-role').value;
+
+            if (!username || !pass) return;
+
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                alert("Un utilisateur avec ce nom existe déjà.");
+                return;
+            }
+
+            users.push({ username, pass, role });
+            saveUsersStorage();
+            renderUsersTable();
+            closeUserModal();
+        }
+
+        function deleteUser(username) {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+
+            if (username === 'mbellemare') {
+                alert("Impossible de supprimer le compte d'administration principal (mbellemare).");
+                return;
+            }
+
+            if (username === currentUser) {
+                alert("Vous ne pouvez pas supprimer le compte actuellement connecté.");
+                return;
+            }
+
+            if (confirm(`Voulez-vous vraiment supprimer l'utilisateur "${username}" ?`)) {
+                users = users.filter(u => u.username !== username);
+                saveUsersStorage();
+                renderUsersTable();
+            }
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+
+                let roleBadge = u.role === 'ADMIN' 
+                    ? `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800">ADMIN</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">Gestionnaire</span>`;
+
+                let desc = u.role === 'ADMIN' 
+                    ? `Accès complet (Joueurs, Cotisations, Alignements, Utilisateurs)` 
+                    : `Générer les alignements & Gérer paiements remplaçants`;
+
+                let isMainAdmin = (u.username === 'mbellemare');
+                let deleteBtn = isMainAdmin 
+                    ? `<span class="text-xs text-slate-400 italic">Compte Principal</span>` 
+                    : `<button onclick="deleteUser('${u.username}')" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded"><i class="fa-solid fa-trash"></i> Supprimer</button>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-circle text-slate-400 text-base"></i>
+                        ${u.username}
+                    </td>
+                    <td class="p-3">${roleBadge}</td>
+                    <td class="p-3 text-xs text-slate-500">${desc}</td>
+                    <td class="p-3 text-right">${deleteBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         function loadStorage() {
+            loadUsers();
             const savedPlayers = localStorage.getItem('hockey_players_v5');
             const savedCost = localStorage.getItem('hockey_season_cost');
             const savedSubRate = localStorage.getItem('hockey_sub_rate');
@@ -786,7 +994,7 @@
         }
 
         function updateSeasonCost(val) {
-            if(currentUser !== 'mbellemare') return;
+            if(getUserRole(currentUser) !== 'ADMIN') return;
             seasonCost = parseFloat(val) || 0;
             saveStorage();
             renderPlayersTable();
@@ -816,20 +1024,25 @@
             document.getElementById('section-shuffle').classList.add('hidden');
             document.getElementById('section-joueurs').classList.add('hidden');
             document.getElementById('section-finance').classList.add('hidden');
+            document.getElementById('section-admin').classList.add('hidden');
 
-            document.getElementById('tab-btn-shuffle').className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
-            document.getElementById('tab-btn-joueurs').className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
-            document.getElementById('tab-btn-finance').className = "px-4 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-shuffle').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-joueurs').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-finance').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-admin').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
 
             if (tab === 'shuffle') {
                 document.getElementById('section-shuffle').classList.remove('hidden');
-                document.getElementById('tab-btn-shuffle').className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+                document.getElementById('tab-btn-shuffle').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
             } else if (tab === 'joueurs') {
                 document.getElementById('section-joueurs').classList.remove('hidden');
-                document.getElementById('tab-btn-joueurs').className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+                document.getElementById('tab-btn-joueurs').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
             } else if (tab === 'finance') {
                 document.getElementById('section-finance').classList.remove('hidden');
-                document.getElementById('tab-btn-finance').className = "px-4 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+                document.getElementById('tab-btn-finance').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+            } else if (tab === 'admin') {
+                document.getElementById('section-admin').classList.remove('hidden');
+                document.getElementById('tab-btn-admin').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
             }
         }
 
@@ -1072,12 +1285,12 @@
             if(!tbody) return;
             tbody.innerHTML = '';
 
-            const isMBellemare = (currentUser === 'mbellemare');
+            const isAdmin = (getUserRole(currentUser) === 'ADMIN');
 
             // Masquer / afficher l'en-tête de la colonne "Statut Paiement"
             const statusColHeader = document.querySelector('.payment-status-col');
             if(statusColHeader) {
-                if(isMBellemare) {
+                if(isAdmin) {
                     statusColHeader.classList.remove('hidden');
                 } else {
                     statusColHeader.classList.add('hidden');
@@ -1134,7 +1347,7 @@
                     <td class="p-3">${p.position}</td>
                     <td class="p-3 font-bold text-slate-700">${p.cote}/10</td>
                     <td class="p-3 text-slate-500">${p.phone || '-'}</td>
-                    ${isMBellemare ? `<td class="p-3 payment-status-col">${statusBadge}</td>` : ''}
+                    ${isAdmin ? `<td class="p-3 payment-status-col">${statusBadge}</td>` : ''}
                     <td class="p-3 text-right space-x-1">${actionsHtml}</td>
                 `;
                 tbody.appendChild(tr);
@@ -1161,7 +1374,7 @@
                 if (isPartial) { statusClass = "bg-amber-100 text-amber-800"; statusLabel = "Incomplet"; }
                 if (p.paid === 0) { statusClass = "bg-rose-100 text-rose-800"; statusLabel = "En attente"; }
 
-                const actionBtn = (currentUser === 'mbellemare') ? `
+                const actionBtn = (getUserRole(currentUser) === 'ADMIN') ? `
                     <button onclick="openPlayerModal(${p.id})" class="px-2.5 py-1 text-xs font-semibold bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded">Paiement</button>
                 ` : `<span class="text-xs text-slate-400 italic">Accès restreint</span>`;
 
@@ -1380,6 +1593,8 @@
             const date = document.getElementById('modal-pay-date').value;
             const method = document.getElementById('modal-pay-method').value;
 
+            const isAdmin = (getUserRole(currentUser) === 'ADMIN');
+
             if (id) {
                 const p = players.find(x => x.id === id);
                 if (p) {
@@ -1388,7 +1603,7 @@
                     p.position = position;
                     p.cote = cote;
                     p.phone = phone;
-                    if(type === 'REGULIER' && currentUser === 'mbellemare') {
+                    if(type === 'REGULIER' && isAdmin) {
                         p.paid = paid;
                         p.date = date;
                         p.method = method;
@@ -1402,9 +1617,9 @@
                     position,
                     cote,
                     phone,
-                    paid: (type === 'REGULIER' && currentUser === 'mbellemare') ? paid : 0,
-                    date: (type === 'REGULIER' && currentUser === 'mbellemare') ? date : '',
-                    method: (type === 'REGULIER' && currentUser === 'mbellemare') ? method : 'Non spécifié',
+                    paid: (type === 'REGULIER' && isAdmin) ? paid : 0,
+                    date: (type === 'REGULIER' && isAdmin) ? date : '',
+                    method: (type === 'REGULIER' && isAdmin) ? method : 'Non spécifié',
                     subGames: []
                 };
                 players.push(newPlayer);
