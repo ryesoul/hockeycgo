@@ -1,35 +1,1855 @@
-<!-- MODAL NOUVEL / ÉDITION UTILISATEUR -->
-<div id="user-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
-        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h3 id="user-modal-title" class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-user-gear text-cyan-600"></i> Ajouter un Utilisateur
-            </h3>
-            <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-        </div>
-        <form id="user-form" onsubmit="saveUser(event)" class="space-y-4">
-            <!-- Champ caché pour stocker l'index lors de l'édition -->
-            <input type="hidden" id="user-id-index" value="-1">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Ligue de Hockey - Blanc vs Multicolore</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        .team-blanc {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border-top: 5px solid #64748b;
+        }
+        .team-multicolore {
+            background: linear-gradient(135deg, #fef3c7 0%, #fbcfe8 50%, #bae6fd 100%);
+            border-top: 5px solid #ec4899;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
+
+    <!-- En-tête -->
+    <header class="gradient-header text-white shadow-lg mb-6">
+        <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-hockey-puck text-3xl text-cyan-400"></i>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Ligue de Hockey Amicale</h1>
+                    <p class="text-xs text-slate-300">Gestion des alignements, remplaçants (25$/partie) & cotisations</p>
+                </div>
+            </div>
             
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nom d'utilisateur</label>
-                <input type="text" id="user-username" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <!-- Zone d'authentification & Navigation -->
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+                <!-- Zone Statut / Connexion Admin -->
+                <div id="auth-status-container" class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+                    <!-- Généré dynamiquement en JS -->
+                </div>
+
+                <!-- Navigation par Onglets -->
+                <div class="flex flex-wrap bg-slate-800 p-1 rounded-xl border border-slate-700">
+                    <button onclick="switchTab('shuffle')" id="tab-btn-shuffle" class="px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow">
+                        <i class="fa-solid fa-shuffle mr-1.5"></i>Alignement
+                    </button>
+                    <button onclick="switchTab('joueurs')" id="tab-btn-joueurs" class="px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-users mr-1.5"></i>Joueurs
+                    </button>
+                    <button onclick="switchTab('finance')" id="tab-btn-finance" class="px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-wallet mr-1.5"></i>Finances
+                    </button>
+                    <button onclick="switchTab('admin')" id="tab-btn-admin" class="hidden px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white">
+                        <i class="fa-solid fa-user-gear mr-1.5"></i>Administration
+                    </button>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mot de passe</label>
-                <input type="password" id="user-password" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4">
+
+        <!-- Banner Avertissement Read Only -->
+        <div id="readonly-banner" class="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-lock text-amber-600"></i>
+                <span><b>Mode Lecture Seule :</b> Vous consultez le site en tant que visiteur. Pour gérer l'alignement ou enregistrer des parties de remplaçants, veuillez vous connecter.</span>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Niveau d'accès (Rôle)</label>
-                <select id="user-role" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                    <option value="ADMIN">ADMIN (Accès complet)</option>
-                    <option value="Gestionnaire">Gestionnaire (Alignements & Remplaçants)</option>
-                </select>
+            <button onclick="openLoginModal()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold transition-all text-[11px]">Se connecter</button>
+        </div>
+
+        <!-- ================= SECTION 1 : SHUFFLE / GENERATEUR D'ÉQUIPES ================= -->
+        <section id="section-shuffle" class="space-y-6">
+            <!-- Barre de contrôle du Shuffle -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-dice text-cyan-600"></i> Générateur d'Équipes Équilibré
+                        </h2>
+                        <p class="text-sm text-slate-500">Sélectionnez les joueurs présents, puis cliquez sur Mélanger. Ajustez les équipes manuellement si nécessaire.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                        <button onclick="checkOnlyRegulars()" class="admin-only px-3 py-1.5 text-xs font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 rounded-lg border border-cyan-200">
+                            <i class="fa-solid fa-user-check mr-1"></i> Réguliers seulement
+                        </button>
+                        <button onclick="checkAll(true)" class="admin-only px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700">
+                            <i class="fa-solid fa-check-double mr-1"></i> Tout cocher
+                        </button>
+                        <button onclick="checkAll(false)" class="admin-only px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700">
+                            <i class="fa-solid fa-xmark mr-1"></i> Tout décocher
+                        </button>
+                        <button onclick="generateTeams()" class="admin-only px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-bold shadow-md transition-all flex items-center gap-2 ml-auto">
+                            <i class="fa-solid fa-shuffle"></i> Mélanger & Équilibrer (Shuffle)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sélection des présences séparée par catégorie -->
+                <div class="mt-6 border-t border-slate-100 pt-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Présences pour la partie (<span id="count-present">0</span> sélectionnés)</span>
+                        <div class="text-xs space-x-3">
+                            <span class="inline-flex items-center gap-1 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> Gardiens: <b id="count-g">0</b></span>
+                            <span class="inline-flex items-center gap-1 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block"></span> Défenseurs: <b id="count-d">0</b></span>
+                            <span class="inline-flex items-center gap-1 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Attaquants: <b id="count-a">0</b></span>
+                            <span class="inline-flex items-center gap-1 text-slate-600"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Remplaçants: <b id="count-sub">0</b></span>
+                        </div>
+                    </div>
+
+                    <div id="presence-categories-container" class="space-y-4 max-h-96 overflow-y-auto pr-1">
+                        <!-- Généré dynamiquement en JS par catégorie -->
+                    </div>
+                </div>
             </div>
-            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
-                <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg shadow">Enregistrer</button>
+
+            <!-- Affichage des 2 Équipes -->
+            <div class="grid md:grid-cols-2 gap-6">
+
+                <!-- ÉQUIPE BLANC -->
+                <div class="team-blanc rounded-2xl shadow-md p-6 border border-slate-300">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded-full bg-white border border-slate-400 inline-block shadow-sm"></span>
+                            <h3 class="text-xl font-extrabold text-slate-800">ÉQUIPE BLANC</h3>
+                        </div>
+                        <div class="bg-white/80 backdrop-blur px-3 py-1 rounded-full border border-slate-200 text-xs font-bold text-slate-700">
+                            Cote moy.: <span id="cote-moy-blanc" class="text-cyan-700">0.0</span> / 10
+                        </div>
+                    </div>
+
+                    <!-- Gardiens -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-shield-halved text-indigo-500"></i> Gardien
+                        </h4>
+                        <div id="team-blanc-g" class="space-y-1.5 min-h-[42px] bg-white/50 p-2 rounded-xl border border-slate-200/60">
+                            <p class="text-xs text-slate-400 italic">Aucun gardien assigné</p>
+                        </div>
+                    </div>
+
+                    <!-- Défenseurs -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-shield text-cyan-500"></i> Défenseurs
+                        </h4>
+                        <div id="team-blanc-d" class="space-y-1.5 min-h-[80px] bg-white/50 p-2 rounded-xl border border-slate-200/60">
+                            <p class="text-xs text-slate-400 italic">Aucun défenseur assigné</p>
+                        </div>
+                    </div>
+
+                    <!-- Attaquants -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-bolt text-emerald-500"></i> Attaquants
+                        </h4>
+                        <div id="team-blanc-a" class="space-y-1.5 min-h-[120px] bg-white/50 p-2 rounded-xl border border-slate-200/60">
+                            <p class="text-xs text-slate-400 italic">Aucun attaquant assigné</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÉQUIPE MULTICOLORE -->
+                <div class="team-multicolore rounded-2xl shadow-md p-6 border border-pink-200">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-pink-200">
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 inline-block shadow-sm"></span>
+                            <h3 class="text-xl font-extrabold text-slate-800">ÉQUIPE MULTICOLORE</h3>
+                        </div>
+                        <div class="bg-white/80 backdrop-blur px-3 py-1 rounded-full border border-pink-200 text-xs font-bold text-slate-700">
+                            Cote moy.: <span id="cote-moy-multicolore" class="text-pink-600">0.0</span> / 10
+                        </div>
+                    </div>
+
+                    <!-- Gardiens -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-shield-halved text-indigo-500"></i> Gardien
+                        </h4>
+                        <div id="team-multicolore-g" class="space-y-1.5 min-h-[42px] bg-white/50 p-2 rounded-xl border border-pink-100">
+                            <p class="text-xs text-slate-400 italic">Aucun gardien assigné</p>
+                        </div>
+                    </div>
+
+                    <!-- Défenseurs -->
+                    <div class="mb-4">
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-shield text-cyan-500"></i> Défenseurs
+                        </h4>
+                        <div id="team-multicolore-d" class="space-y-1.5 min-h-[80px] bg-white/50 p-2 rounded-xl border border-pink-100">
+                            <p class="text-xs text-slate-400 italic">Aucun défenseur assigné</p>
+                        </div>
+                    </div>
+
+                    <!-- Attaquants -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                            <i class="fa-solid fa-bolt text-emerald-500"></i> Attaquants
+                        </h4>
+                        <div id="team-multicolore-a" class="space-y-1.5 min-h-[120px] bg-white/50 p-2 rounded-xl border border-pink-100">
+                            <p class="text-xs text-slate-400 italic">Aucun attaquant assigné</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </form>
+
+            <!-- Bouton Export Texte SMS / Messenger -->
+            <div class="flex justify-end">
+                <button onclick="copyLineupText()" class="px-5 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold shadow flex items-center gap-2">
+                    <i class="fa-regular fa-copy"></i> Copier l'alignement pour SMS / Messenger
+                </button>
+            </div>
+        </section>
+
+
+        <!-- ================= SECTION 2 : GESTION DES JOUEURS ================= -->
+        <section id="section-joueurs" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">
+                            <i class="fa-solid fa-users text-cyan-600 mr-2"></i>Gestion des Joueurs & Remplaçants
+                        </h2>
+                        <p class="text-sm text-slate-500">Gérez votre effectif, leurs positions, cotes et coordonnées.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="resetDefaultPlayers()" class="admin-only px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Réinitialiser la liste
+                        </button>
+                        <button onclick="openPlayerModal()" class="admin-only px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-2 text-sm">
+                            <i class="fa-solid fa-user-plus"></i> Ajouter un joueur
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtres -->
+                <div class="flex flex-wrap gap-3 mb-4">
+                    <input type="text" id="search-player" oninput="renderPlayersTable()" placeholder="Rechercher un nom..." class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-64">
+                    <select id="filter-type" onchange="renderPlayersTable()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <option value="ALL">Tous les types (Réguliers & Remplaçants)</option>
+                        <option value="REGULIER">Réguliers uniquement</option>
+                        <option value="REMPLACANT">Remplaçants uniquement</option>
+                    </select>
+                    <select id="filter-position" onchange="renderPlayersTable()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <option value="ALL">Toutes les positions</option>
+                        <option value="Gardien">Gardiens</option>
+                        <option value="Défenseur">Défenseurs</option>
+                        <option value="Attaquant">Attaquants</option>
+                    </select>
+                </div>
+
+                <!-- Tableau de la liste des joueurs -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">#</th>
+                                <th class="p-3">Joueur</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Position</th>
+                                <th class="p-3">Cote (1-10)</th>
+                                <th class="p-3">Téléphone</th>
+                                <th class="p-3 payment-status-col">Statut Paiement</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="players-table-body" class="divide-y divide-slate-100">
+                            <!-- Généré par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= SECTION 3 : FINANCES & PAIEMENTS ================= -->
+        <section id="section-finance" class="hidden space-y-6">
+            
+            <!-- Message de restriction pour les Réguliers si non ADMIN -->
+            <div id="finance-mbellemare-restricted-msg" class="hidden p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs flex items-center gap-3">
+                <i class="fa-solid fa-lock text-xl text-amber-600"></i>
+                <div>
+                    <b>Information :</b> La section de gestion des <b>cotisations des joueurs réguliers</b> est réservée exclusivement aux utilisateurs ayant le rôle <b>ADMIN</b>. Seul le suivi des remplaçants vous est accessible.
+                </div>
+            </div>
+
+            <!-- Carte Coûts & Bilan Financier (Visible uniquement par ADMIN) -->
+            <div id="finance-summary-cards" class="grid md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Coût Saison (Régulier)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="season-cost-input" value="592" step="1" onchange="updateSeasonCost(this.value)" class="text-2xl font-black text-slate-800 w-24 border border-slate-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-cyan-500">
+                        <span class="text-xl font-bold text-slate-500">$</span>
+                    </div>
+                    <label class="block text-[11px] font-bold uppercase text-amber-600 mt-2 mb-1">Tarif / Match (Remplaçant)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="sub-cost-input" value="25" step="1" onchange="updateSubCost(this.value)" class="text-lg font-bold text-slate-800 w-20 border border-slate-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-cyan-500">
+                        <span class="text-sm font-bold text-slate-500">$ / match</span>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <span class="block text-xs font-bold uppercase text-emerald-600 mb-1">Total Perçu (Rég. + Subs)</span>
+                    <div class="text-2xl font-black text-emerald-700" id="total-percu">0,00 $</div>
+                    <p class="text-xs text-emerald-600/80 mt-1"><span id="total-percu-subs">0,00 $</span> perçu des Subs</p>
+                </div>
+
+                <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-sm">
+                    <span class="block text-xs font-bold uppercase text-amber-600 mb-1">Solde à Collecter</span>
+                    <div class="text-2xl font-black text-amber-700" id="total-a-collecter">0,00 $</div>
+                    <p class="text-xs text-amber-600/80 mt-1">Dont <span id="total-impaye-subs">0,00 $</span> impayé par les Subs</p>
+                </div>
+
+                <div class="bg-indigo-50 p-5 rounded-2xl border border-indigo-200 shadow-sm">
+                    <span class="block text-xs font-bold uppercase text-indigo-600 mb-1">Réguliers en règle</span>
+                    <div class="text-2xl font-black text-indigo-700"><span id="count-paye">0</span> / <span id="count-total-reg">0</span></div>
+                    <p class="text-xs text-indigo-600/80 mt-1"><span id="count-sub-games">0</span> partie(s) jouée(s) par subs</p>
+                </div>
+            </div>
+
+            <!-- Liste Réguliers (Réservé exclusivement à ADMIN) -->
+            <div id="finance-regular-section" class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i> Cotisations des Joueurs Réguliers (Saison)
+                </h2>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Joueur</th>
+                                <th class="p-3">Montant Payé ($)</th>
+                                <th class="p-3">Solde Restant</th>
+                                <th class="p-3">Date Paiement</th>
+                                <th class="p-3">Méthode</th>
+                                <th class="p-3">Statut</th>
+                                <th class="p-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finance-table-body" class="divide-y divide-slate-100">
+                            <!-- Généré par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Liste Remplaçants (Suivi Partie par Partie) - Visible par tous / Éditable si connecté -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-amber-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-user-clock text-amber-600"></i> Suivi Partie par Partie des Remplaçants (Subs)
+                        </h2>
+                        <p class="text-xs text-slate-500">Ajoutez les parties jouées par les remplaçants et suivez leurs paiements (25 $/partie).</p>
+                    </div>
+                    <button onclick="openSubGameModal()" class="admin-only px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Enregistrer une partie jouée
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-amber-50 text-xs uppercase font-bold text-amber-900 border-b border-amber-200">
+                            <tr>
+                                <th class="p-3">Remplaçant (Sub)</th>
+                                <th class="p-3">Parties Jouées</th>
+                                <th class="p-3">Total Dû ($)</th>
+                                <th class="p-3">Total Payé ($)</th>
+                                <th class="p-3">Solde Impayé</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sub-finance-table-body" class="divide-y divide-slate-100">
+                            <!-- Généré par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 4 : ADMINISTRATION DES UTILISATEURS ================= -->
+        <section id="section-admin" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-user-gear text-cyan-600"></i> Gestion des Utilisateurs & Accès
+                        </h2>
+                        <p class="text-sm text-slate-500">Ajoutez de nouveaux utilisateurs, modifiez leur niveau d'accès, modifiez leurs identifiants ou supprimez des comptes.</p>
+                    </div>
+                    <button onclick="openAddUserModal()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-user-plus"></i> Nouvel Utilisateur
+                    </button>
+                </div>
+
+                <!-- Tableau de la liste des utilisateurs -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b border-slate-200">
+                            <tr>
+                                <th class="p-3">Nom d'utilisateur</th>
+                                <th class="p-3">Niveau d'accès (Rôle)</th>
+                                <th class="p-3">Permissions</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-100">
+                            <!-- Généré par JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= MODAL DE CONNEXION ADMIN ================= -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-shield text-cyan-600"></i> Connexion
+                </h3>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div id="login-error" class="hidden p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold">
+                    Identifiants invalides.
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nom d'utilisateur</label>
+                    <input type="text" id="login-username" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mot de passe</label>
+                    <input type="password" id="login-password" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg shadow">Se connecter</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+
+    <!-- ================= MODAL D'AJOUT / ÉDITION D'UTILISATEUR ================= -->
+    <div id="user-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 id="user-modal-title" class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-cyan-600"></i> Ajouter un Utilisateur
+                </h3>
+                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form id="user-form" onsubmit="saveUser(event)" class="space-y-4">
+                <input type="hidden" id="user-original-username">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nom d'utilisateur</label>
+                    <input type="text" id="user-username" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mot de passe</label>
+                    <input type="password" id="user-password" required placeholder="Laissez inchangé pour ne pas modifier" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Niveau d'accès (Rôle)</label>
+                    <select id="user-role" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <option value="ADMIN">ADMIN (Accès complet)</option>
+                        <option value="Gestionnaire">Gestionnaire (Alignements & Remplaçants)</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-500 space-y-1">
+                    <p class="font-bold text-slate-700">Détails des rôles :</p>
+                    <p>• <b>ADMIN :</b> Accès à tout faire (Joueurs, Cotisations, Alignements & Gestion Utilisateurs).</p>
+                    <p>• <b>Gestionnaire :</b> Générer les alignements et gérer les paiements des remplaçants.</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
+                    <button type="submit" id="user-modal-submit-btn" class="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg shadow">Créer l'utilisateur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DE JOUEUR (AJOUT / ÉDITION) ================= -->
+    <div id="player-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800" id="modal-title">Fiche du Joueur</h3>
+                <button onclick="closePlayerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form id="player-form" onsubmit="savePlayer(event)" class="space-y-4">
+                <input type="hidden" id="modal-player-id">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Nom Complet</label>
+                    <input type="text" id="modal-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Type de Joueur</label>
+                        <select id="modal-type" onchange="toggleModalFieldsByType()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="REGULIER">Régulier</option>
+                            <option value="REMPLACANT">Remplaçant (Sub)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Position</label>
+                        <select id="modal-position" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="Gardien">Gardien</option>
+                            <option value="Défenseur">Défenseur</option>
+                            <option value="Attaquant">Attaquant</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Cote (1 à 10)</label>
+                        <input type="number" id="modal-cote" min="1" max="10" step="0.5" value="7.5" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Téléphone</label>
+                        <input type="text" id="modal-phone" placeholder="819-000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Section Paiement pour Régulier -->
+                <div id="regular-payment-fields">
+                    <hr class="border-slate-100 my-2">
+                    <h4 class="text-xs font-bold text-cyan-700 uppercase tracking-wider mb-2">Informations de Paiement Saison (Régulier)</h4>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Montant Payé ($)</label>
+                            <input type="number" id="modal-paid" min="0" step="1" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Date du Paiement</label>
+                            <input type="date" id="modal-pay-date" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Méthode de Paiement</label>
+                        <select id="modal-pay-method" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                            <option value="Non spécifié">Non spécifié</option>
+                            <option value="Interac / Virement">Interac / Virement</option>
+                            <option value="Argent comptant">Argent comptant</option>
+                            <option value="Chèque">Chèque</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Section Historique Remplaçant (Si Sub) -->
+                <div id="sub-history-fields" class="hidden">
+                    <hr class="border-slate-100 my-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-xs font-bold text-amber-700 uppercase tracking-wider">Historique des parties jouées (Remplaçant)</h4>
+                        <button type="button" onclick="openSubGameModalFromPlayer()" class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded font-bold hover:bg-amber-200">
+                            + Ajouter Partie
+                        </button>
+                    </div>
+                    <div id="modal-sub-games-list" class="space-y-1.5 max-h-36 overflow-y-auto text-xs">
+                        <!-- Liste des parties du Sub -->
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closePlayerModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg shadow">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL D'AJOUT D'UNE PARTIE POUR REMPLAÇANT -->
+    <div id="sub-game-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800">Enregistrer une Partie pour Remplaçant</h3>
+                <button onclick="closeSubGameModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <form id="sub-game-form" onsubmit="saveSubGame(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sélectionner le Remplaçant (Sub)</label>
+                    <select id="sub-game-player-id" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <!-- Options générées en JS -->
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Date du Match</label>
+                        <input type="date" id="sub-game-date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Montant ($)</label>
+                        <input type="number" id="sub-game-amount" min="0" step="1" value="25" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Statut Paiement</label>
+                        <select id="sub-game-status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="PAYE">Payé</option>
+                            <option value="NON_PAYE">Non Payé</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Méthode</label>
+                        <select id="sub-game-method" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="Interac / Virement">Interac / Virement</option>
+                            <option value="Argent comptant">Argent comptant</option>
+                            <option value="Chèque">Chèque</option>
+                            <option value="Non spécifié">Non spécifié</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeSubGameModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow">Enregistrer Partie</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- SCRIPT APPLICATION -->
+    <script>
+        // Comptes administrateurs / gestionnaires enregistrés par défaut
+        const DEFAULT_USERS = [
+            { username: "mbellemare", pass: "Pompier09!", role: "ADMIN" },
+            { username: "eric", pass: "hockey01", role: "Gestionnaire" }
+        ];
+
+        let users = [];
+        let currentUser = null; // null = Read-Only mode
+
+        // Exactement la liste des 24 joueurs officiels + Subs
+        const OFFICIAL_24_PLAYERS = [
+            { id: 1, name: "Patrick Dubé", type: "REGULIER", position: "Gardien", cote: 8.0, phone: "819-697-9273", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 2, name: "Mikael Bellemare", type: "REGULIER", position: "Gardien", cote: 8.5, phone: "819-383-7889", paid: 0, date: "", method: "Non spécifié", subGames: [] },
+            { id: 3, name: "Yanick Provencher", type: "REGULIER", position: "Défenseur", cote: 7.5, phone: "819-233-9281", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 4, name: "Dave Bergeron", type: "REGULIER", position: "Attaquant", cote: 7.0, phone: "819-692-2681", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 5, name: "Pierre-Luc Sylvestre", type: "REGULIER", position: "Défenseur", cote: 8.0, phone: "819-698-4361", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 6, name: "Dave Desrochers", type: "REGULIER", position: "Attaquant", cote: 7.5, phone: "819 701-2891", paid: 592, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 7, name: "Charles Dubuc", type: "REGULIER", position: "Attaquant", cote: 7.0, phone: "819-701-2297", paid: 592, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 8, name: "Jonathan Balleux", type: "REGULIER", position: "Attaquant", cote: 8.0, phone: "819-383-8183", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 9, name: "Eric Pinsonnault", type: "REGULIER", position: "Défenseur", cote: 7.0, phone: "819-668-5520", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 10, name: "Eric St-Laurent", type: "REGULIER", position: "Défenseur", cote: 7.5, phone: "819-384-9653", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 11, name: "Marc-André Nadeau", type: "REGULIER", position: "Défenseur", cote: 8.5, phone: "819-386-5094", paid: 600, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 12, name: "Pierre-Luc Drouin", type: "REGULIER", position: "Attaquant", cote: 7.0, phone: "819-698-9915", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 13, name: "Tommy Lemay", type: "REGULIER", position: "Attaquant", cote: 8.0, phone: "819-293-8787", paid: 592, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 14, name: "Julien Fournier Cloutier", type: "REGULIER", position: "Défenseur", cote: 7.5, phone: "819-995-2327", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 15, name: "Steve Bedard / Laurent P-M", type: "REGULIER", position: "Attaquant", cote: 7.0, phone: "819 699-4266", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 16, name: "Steve St-Laurent", type: "REGULIER", position: "Attaquant", cote: 8.0, phone: "819-909-0723", paid: 592, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 17, name: "Phélip Daignault", type: "REGULIER", position: "Défenseur", cote: 8.0, phone: "819-699-6643", paid: 592, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 18, name: "Dave Lacroix", type: "REGULIER", position: "Attaquant", cote: 6.5, phone: "819-269-3283", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 19, name: "Marc-Olivier Désy", type: "REGULIER", position: "Défenseur", cote: 7.5, phone: "514-588-2493", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 20, name: "Etienne Champagne", type: "REGULIER", position: "Attaquant", cote: 8.0, phone: "450-888-1526", paid: 592, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 21, name: "Tommy Massicotte-Beaudoin", type: "REGULIER", position: "Attaquant", cote: 7.0, phone: "", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 22, name: "Denis Dionne", type: "REGULIER", position: "Attaquant", cote: 6.5, phone: "", paid: 590, date: "2026-09-01", method: "Argent comptant", subGames: [] },
+            { id: 23, name: "Jonathan Beaudet", type: "REGULIER", position: "Défenseur", cote: 7.5, phone: "", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { id: 24, name: "Simon Belanger", type: "REGULIER", position: "Défenseur", cote: 8.0, phone: "", paid: 592, date: "2026-09-01", method: "Interac / Virement", subGames: [] },
+            { 
+                id: 25, 
+                name: "Alexandre Tremblay", 
+                type: "REMPLACANT", 
+                position: "Attaquant", 
+                cote: 7.0, 
+                phone: "819-555-0199", 
+                paid: 0, 
+                date: "", 
+                method: "Non spécifié",
+                subGames: [
+                    { id: 101, date: "2026-09-15", amount: 25, status: "PAYE", method: "Interac / Virement" },
+                    { id: 102, date: "2026-09-22", amount: 25, status: "NON_PAYE", method: "Non spécifié" }
+                ]
+            }
+        ];
+
+        let players = [];
+        let seasonCost = 592;
+        let subRate = 25;
+        let selectedPresenceIds = new Set();
+        let currentLineup = { blanc: [], multicolore: [] };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStorage();
+            checkAuthSession();
+            renderPresenceSelector();
+            renderPlayersTable();
+            renderFinanceTable();
+            renderSubFinanceTable();
+            renderUsersTable();
+            updateFinanceStats();
+            generateTeams();
+            applyPermissionUI();
+        });
+
+        // --- AUTHENTIFICATION & UTILISATEURS ---
+        function loadUsers() {
+            const savedUsers = localStorage.getItem('hockey_app_users');
+            if (savedUsers) {
+                users = JSON.parse(savedUsers);
+            } else {
+                users = [...DEFAULT_USERS];
+                saveUsersStorage();
+            }
+        }
+
+        function saveUsersStorage() {
+            localStorage.setItem('hockey_app_users', JSON.stringify(users));
+        }
+
+        function getUserRole(username) {
+            const u = users.find(x => x.username === username);
+            return u ? u.role : null;
+        }
+
+        function checkAuthSession() {
+            const loggedUser = sessionStorage.getItem('hockey_admin_user');
+            if (loggedUser) {
+                const u = users.find(x => x.username === loggedUser);
+                if (u) {
+                    currentUser = u.username;
+                } else {
+                    sessionStorage.removeItem('hockey_admin_user');
+                    currentUser = null;
+                }
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-form').reset();
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const userVal = document.getElementById('login-username').value.trim();
+            const passVal = document.getElementById('login-password').value.trim();
+
+            const foundUser = users.find(u => u.username === userVal && u.pass === passVal);
+
+            if (foundUser) {
+                currentUser = foundUser.username;
+                sessionStorage.setItem('hockey_admin_user', currentUser);
+                closeLoginModal();
+                applyPermissionUI();
+                renderPresenceSelector();
+                renderPlayersTable();
+                renderFinanceTable();
+                renderSubFinanceTable();
+                renderUsersTable();
+                renderTeams();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            sessionStorage.removeItem('hockey_admin_user');
+            switchTab('shuffle');
+            applyPermissionUI();
+            renderPresenceSelector();
+            renderPlayersTable();
+            renderFinanceTable();
+            renderSubFinanceTable();
+            renderTeams();
+        }
+
+        function applyPermissionUI() {
+            const container = document.getElementById('auth-status-container');
+            const banner = document.getElementById('readonly-banner');
+            const tabAdmin = document.getElementById('tab-btn-admin');
+
+            const role = getUserRole(currentUser);
+
+            if (currentUser) {
+                container.innerHTML = `
+                    <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-check"></i> <b>${currentUser}</b> <span class="bg-slate-700 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded font-bold">${role}</span>
+                    </span>
+                    <button onclick="logout()" class="ml-2 px-2 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded font-bold text-[11px]">Déconnexion</button>
+                `;
+                if(banner) banner.classList.add('hidden');
+            } else {
+                container.innerHTML = `
+                    <span class="text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-eye"></i> Mode Lecture seule
+                    </span>
+                    <button onclick="openLoginModal()" class="ml-2 px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold text-[11px]">Connexion</button>
+                `;
+                if(banner) banner.classList.remove('hidden');
+            }
+
+            // Affichage de l'onglet Admin si le rôle est ADMIN
+            if (role === 'ADMIN') {
+                if(tabAdmin) tabAdmin.classList.remove('hidden');
+            } else {
+                if(tabAdmin) tabAdmin.classList.add('hidden');
+            }
+
+            // Gérer la visibilité des boutons d'action génériques
+            const adminButtons = document.querySelectorAll('.admin-only');
+            adminButtons.forEach(el => {
+                if (currentUser) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            // LOGIQUE DROITS ADMIN (Cotisations Réguliers)
+            const isAdmin = (role === 'ADMIN');
+            const regSection = document.getElementById('finance-regular-section');
+            const summaryCards = document.getElementById('finance-summary-cards');
+            const mbMsg = document.getElementById('finance-mbellemare-restricted-msg');
+
+            if (isAdmin) {
+                if(regSection) regSection.classList.remove('hidden');
+                if(summaryCards) summaryCards.classList.remove('hidden');
+                if(mbMsg) mbMsg.classList.add('hidden');
+            } else {
+                if(regSection) regSection.classList.add('hidden');
+                if(summaryCards) summaryCards.classList.add('hidden');
+                if(mbMsg) mbMsg.classList.remove('hidden');
+            }
+
+            // Désactiver/Activer les inputs financiers
+            document.getElementById('season-cost-input').disabled = !isAdmin;
+            document.getElementById('sub-cost-input').disabled = !currentUser;
+
+            renderPlayersTable();
+        }
+
+        // --- GESTION DES UTILISATEURS (ADMIN) ---
+        function openAddUserModal() {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+            document.getElementById('user-form').reset();
+            document.getElementById('user-original-username').value = '';
+            document.getElementById('user-modal-title').innerHTML = `<i class="fa-solid fa-user-plus text-cyan-600"></i> Ajouter un Utilisateur`;
+            document.getElementById('user-modal-submit-btn').innerText = "Créer l'utilisateur";
+            document.getElementById('user-password').required = true;
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+
+        function openEditUserModal(username) {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+            const u = users.find(x => x.username === username);
+            if(!u) return;
+
+            document.getElementById('user-form').reset();
+            document.getElementById('user-original-username').value = u.username;
+            document.getElementById('user-username').value = u.username;
+            document.getElementById('user-role').value = u.role;
+            document.getElementById('user-password').value = '';
+            document.getElementById('user-password').required = false;
+
+            document.getElementById('user-modal-title').innerHTML = `<i class="fa-solid fa-user-pen text-cyan-600"></i> Éditer l'Utilisateur (${u.username})`;
+            document.getElementById('user-modal-submit-btn').innerText = "Enregistrer les modifications";
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('user-modal').classList.add('hidden');
+        }
+
+        function saveUser(e) {
+            e.preventDefault();
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+
+            const origUsername = document.getElementById('user-original-username').value.trim();
+            const username = document.getElementById('user-username').value.trim();
+            const pass = document.getElementById('user-password').value.trim();
+            const role = document.getElementById('user-role').value;
+
+            if (!username) return;
+
+            // Mode Édition
+            if (origUsername) {
+                const existingUserIndex = users.findIndex(u => u.username === origUsername);
+                if (existingUserIndex === -1) return;
+
+                // Vérifier si le nouveau nom entre en conflit avec un autre compte
+                if (username.toLowerCase() !== origUsername.toLowerCase() && users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                    alert("Un autre utilisateur utilise déjà ce nom d'utilisateur.");
+                    return;
+                }
+
+                // Protections compte principal / utilisateur en cours
+                if (origUsername === 'mbellemare' && username !== 'mbellemare') {
+                    alert("Le nom d'utilisateur principal (mbellemare) ne peut pas être renommé.");
+                    return;
+                }
+
+                users[existingUserIndex].username = username;
+                if (pass !== "") {
+                    users[existingUserIndex].pass = pass;
+                }
+                users[existingUserIndex].role = role;
+
+                // Si l'admin a modifié son propre compte connecté
+                if (origUsername === currentUser) {
+                    currentUser = username;
+                    sessionStorage.setItem('hockey_admin_user', currentUser);
+                }
+
+            } else { // Mode Création
+                if (!pass) {
+                    alert("Veuillez saisir un mot de passe.");
+                    return;
+                }
+
+                if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                    alert("Un utilisateur avec ce nom existe déjà.");
+                    return;
+                }
+
+                users.push({ username, pass, role });
+            }
+
+            saveUsersStorage();
+            renderUsersTable();
+            applyPermissionUI();
+            closeUserModal();
+        }
+
+        function changeUserRole(username, newRole) {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+
+            if (username === 'mbellemare' && newRole !== 'ADMIN') {
+                alert("Le compte d'administration principal (mbellemare) doit toujours rester ADMIN.");
+                renderUsersTable();
+                return;
+            }
+
+            if (username === currentUser && newRole !== 'ADMIN') {
+                alert("Vous ne pouvez pas rétrograder votre propre rôle pendant votre session.");
+                renderUsersTable();
+                return;
+            }
+
+            const u = users.find(x => x.username === username);
+            if (u) {
+                u.role = newRole;
+                saveUsersStorage();
+                renderUsersTable();
+                applyPermissionUI();
+            }
+        }
+
+        function deleteUser(username) {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+
+            if (username === 'mbellemare') {
+                alert("Impossible de supprimer le compte d'administration principal (mbellemare).");
+                return;
+            }
+
+            if (username === currentUser) {
+                alert("Vous ne pouvez pas supprimer le compte actuellement connecté.");
+                return;
+            }
+
+            if (confirm(`Voulez-vous vraiment supprimer l'utilisateur "${username}" ?`)) {
+                users = users.filter(u => u.username !== username);
+                saveUsersStorage();
+                renderUsersTable();
+            }
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+
+                let isMainAdmin = (u.username === 'mbellemare');
+                let isCurrentLoggedIn = (u.username === currentUser);
+
+                let roleSelector = `
+                    <select onchange="changeUserRole('${u.username}', this.value)" ${isMainAdmin || isCurrentLoggedIn ? 'disabled' : ''} class="px-2 py-1 border border-slate-300 rounded text-xs font-bold bg-white focus:ring-2 focus:ring-cyan-500">
+                        <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>ADMIN</option>
+                        <option value="Gestionnaire" ${u.role === 'Gestionnaire' ? 'selected' : ''}>Gestionnaire</option>
+                    </select>
+                `;
+
+                let desc = u.role === 'ADMIN' 
+                    ? `Accès complet (Joueurs, Cotisations, Alignements, Utilisateurs)` 
+                    : `Générer les alignements & Gérer paiements remplaçants`;
+
+                let editBtn = `<button onclick="openEditUserModal('${u.username}')" class="p-1.5 text-cyan-600 hover:text-cyan-800 hover:bg-cyan-50 rounded mr-1" title="Modifier identifiants / accès"><i class="fa-solid fa-pen-to-square"></i> Modifier</button>`;
+
+                let deleteBtn = isMainAdmin 
+                    ? `<span class="text-xs text-slate-400 italic">Compte Principal</span>` 
+                    : (isCurrentLoggedIn 
+                        ? `<span class="text-xs text-slate-400 italic">Compte Actif</span>` 
+                        : `<button onclick="deleteUser('${u.username}')" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded" title="Supprimer"><i class="fa-solid fa-trash"></i> Supprimer</button>`);
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-circle text-slate-400 text-base"></i>
+                        ${u.username}
+                    </td>
+                    <td class="p-3">${roleSelector}</td>
+                    <td class="p-3 text-xs text-slate-500">${desc}</td>
+                    <td class="p-3 text-right flex items-center justify-end gap-1">${editBtn} ${deleteBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadStorage() {
+            loadUsers();
+            const savedPlayers = localStorage.getItem('hockey_players_v5');
+            const savedCost = localStorage.getItem('hockey_season_cost');
+            const savedSubRate = localStorage.getItem('hockey_sub_rate');
+
+            if (savedPlayers) {
+                players = JSON.parse(savedPlayers);
+            } else {
+                players = [...OFFICIAL_24_PLAYERS];
+                saveStorage();
+            }
+
+            if (savedCost) {
+                seasonCost = parseFloat(savedCost);
+                document.getElementById('season-cost-input').value = seasonCost;
+            }
+
+            if (savedSubRate) {
+                subRate = parseFloat(savedSubRate);
+                document.getElementById('sub-cost-input').value = subRate;
+            }
+
+            checkOnlyRegulars();
+        }
+
+        function saveStorage() {
+            localStorage.setItem('hockey_players_v5', JSON.stringify(players));
+            localStorage.setItem('hockey_season_cost', seasonCost.toString());
+            localStorage.setItem('hockey_sub_rate', subRate.toString());
+        }
+
+        function resetDefaultPlayers() {
+            if(!currentUser) return;
+            if(confirm("Réinitialiser la liste exacte des joueurs et réinitialiser les données ?")) {
+                players = [...OFFICIAL_24_PLAYERS];
+                saveStorage();
+                checkOnlyRegulars();
+                renderPlayersTable();
+                renderFinanceTable();
+                renderSubFinanceTable();
+                updateFinanceStats();
+                generateTeams();
+            }
+        }
+
+        function updateSeasonCost(val) {
+            if(getUserRole(currentUser) !== 'ADMIN') return;
+            seasonCost = parseFloat(val) || 0;
+            saveStorage();
+            renderPlayersTable();
+            renderFinanceTable();
+            updateFinanceStats();
+        }
+
+        function updateSubCost(val) {
+            if(!currentUser) return;
+            subRate = parseFloat(val) || 25;
+            saveStorage();
+            renderSubFinanceTable();
+            updateFinanceStats();
+        }
+
+        function checkOnlyRegulars() {
+            selectedPresenceIds.clear();
+            players.forEach(p => {
+                if(p.type === 'REGULIER') {
+                    selectedPresenceIds.add(p.id);
+                }
+            });
+            renderPresenceSelector();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('section-shuffle').classList.add('hidden');
+            document.getElementById('section-joueurs').classList.add('hidden');
+            document.getElementById('section-finance').classList.add('hidden');
+            document.getElementById('section-admin').classList.add('hidden');
+
+            document.getElementById('tab-btn-shuffle').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-joueurs').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-finance').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+            document.getElementById('tab-btn-admin').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all text-slate-300 hover:text-white";
+
+            if (tab === 'shuffle') {
+                document.getElementById('section-shuffle').classList.remove('hidden');
+                document.getElementById('tab-btn-shuffle').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+            } else if (tab === 'joueurs') {
+                document.getElementById('section-joueurs').classList.remove('hidden');
+                document.getElementById('tab-btn-joueurs').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+            } else if (tab === 'finance') {
+                document.getElementById('section-finance').classList.remove('hidden');
+                document.getElementById('tab-btn-finance').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+            } else if (tab === 'admin') {
+                document.getElementById('section-admin').classList.remove('hidden');
+                document.getElementById('tab-btn-admin').className = "px-3 py-2 rounded-lg font-medium text-sm transition-all bg-cyan-600 text-white shadow";
+            }
+        }
+
+        function renderPresenceSelector() {
+            const container = document.getElementById('presence-categories-container');
+            container.innerHTML = '';
+
+            let gCount = 0, dCount = 0, aCount = 0, subCount = 0;
+
+            players.forEach(p => {
+                if (selectedPresenceIds.has(p.id)) {
+                    if (p.type === 'REMPLACANT') {
+                        subCount++;
+                    } else {
+                        if (p.position === 'Gardien') gCount++;
+                        if (p.position === 'Défenseur') dCount++;
+                        if (p.position === 'Attaquant') aCount++;
+                    }
+                }
+            });
+
+            document.getElementById('count-present').innerText = selectedPresenceIds.size;
+            document.getElementById('count-g').innerText = gCount;
+            document.getElementById('count-d').innerText = dCount;
+            document.getElementById('count-a').innerText = aCount;
+            document.getElementById('count-sub').innerText = subCount;
+
+            const categories = [
+                {
+                    title: "Attaquants (Réguliers)",
+                    icon: "fa-bolt",
+                    color: "text-emerald-600",
+                    badgeColor: "bg-emerald-100 text-emerald-800",
+                    players: players.filter(p => p.type === 'REGULIER' && p.position === 'Attaquant')
+                },
+                {
+                    title: "Défenseurs (Réguliers)",
+                    icon: "fa-shield",
+                    color: "text-cyan-600",
+                    badgeColor: "bg-cyan-100 text-cyan-800",
+                    players: players.filter(p => p.type === 'REGULIER' && p.position === 'Défenseur')
+                },
+                {
+                    title: "Gardiens (Réguliers)",
+                    icon: "fa-shield-halved",
+                    color: "text-indigo-600",
+                    badgeColor: "bg-indigo-100 text-indigo-800",
+                    players: players.filter(p => p.type === 'REGULIER' && p.position === 'Gardien')
+                },
+                {
+                    title: "Remplaçants (Subs)",
+                    icon: "fa-user-clock",
+                    color: "text-amber-600",
+                    badgeColor: "bg-amber-100 text-amber-800",
+                    players: players.filter(p => p.type === 'REMPLACANT')
+                }
+            ];
+
+            categories.forEach(cat => {
+                if (cat.players.length === 0) return;
+
+                cat.players.sort((a,b) => a.name.localeCompare(b.name));
+
+                const categoryBlock = document.createElement('div');
+                categoryBlock.className = "bg-slate-50 p-3 rounded-xl border border-slate-200";
+
+                const categoryTitle = document.createElement('h3');
+                categoryTitle.className = `text-xs font-bold uppercase mb-2 flex items-center gap-2 ${cat.color}`;
+                categoryTitle.innerHTML = `<i class="fa-solid ${cat.icon}"></i> ${cat.title} (${cat.players.length})`;
+
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2";
+
+                cat.players.forEach(p => {
+                    const isChecked = selectedPresenceIds.has(p.id);
+
+                    const card = document.createElement('label');
+                    card.className = `flex items-center gap-2 p-2 rounded-lg ${currentUser ? 'cursor-pointer' : 'cursor-not-allowed'} transition-all border ${isChecked ? 'bg-white border-cyan-500 shadow-sm' : 'bg-slate-100 border-transparent opacity-60'}`;
+                    card.innerHTML = `
+                        <input type="checkbox" onchange="togglePresence(${p.id})" ${isChecked ? 'checked' : ''} ${currentUser ? '' : 'disabled'} class="w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 disabled:opacity-50">
+                        <div class="truncate text-xs">
+                            <div class="font-semibold text-slate-800 truncate">${p.name}</div>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <span class="px-1.5 py-0.2 text-[10px] font-bold rounded ${cat.badgeColor}">${p.position.substring(0,3)}</span>
+                                <span class="text-[10px] text-slate-500 font-bold">${p.cote}/10</span>
+                                ${p.type === 'REMPLACANT' ? '<span class="text-[9px] text-amber-600 font-bold">(Sub)</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                categoryBlock.appendChild(categoryTitle);
+                categoryBlock.appendChild(grid);
+                container.appendChild(categoryBlock);
+            });
+        }
+
+        function togglePresence(id) {
+            if(!currentUser) return;
+            if (selectedPresenceIds.has(id)) {
+                selectedPresenceIds.delete(id);
+            } else {
+                selectedPresenceIds.add(id);
+            }
+            renderPresenceSelector();
+        }
+
+        function checkAll(status) {
+            if(!currentUser) return;
+            if (status) {
+                players.forEach(p => selectedPresenceIds.add(p.id));
+            } else {
+                selectedPresenceIds.clear();
+            }
+            renderPresenceSelector();
+        }
+
+        function generateTeams() {
+            const activePlayers = players.filter(p => selectedPresenceIds.has(p.id));
+
+            const gardiens = shuffleArray(activePlayers.filter(p => p.position === 'Gardien')).sort((a,b) => b.cote - a.cote);
+            const defenseurs = shuffleArray(activePlayers.filter(p => p.position === 'Défenseur')).sort((a,b) => b.cote - a.cote);
+            const attaquants = shuffleArray(activePlayers.filter(p => p.position === 'Attaquant')).sort((a,b) => b.cote - a.cote);
+
+            const teamBlanc = [];
+            const teamMulticolore = [];
+
+            function distribute(list) {
+                let flip = Math.random() < 0.5;
+                list.forEach(player => {
+                    if (flip) {
+                        teamBlanc.push(player);
+                    } else {
+                        teamMulticolore.push(player);
+                    }
+                    flip = !flip;
+                });
+            }
+
+            distribute(gardiens);
+            distribute(defenseurs);
+            distribute(attaquants);
+
+            currentLineup = { blanc: teamBlanc, multicolore: teamMulticolore };
+            renderTeams();
+        }
+
+        function movePlayer(playerId, fromTeam, toTeam) {
+            if(!currentUser) return;
+            const playerIndex = currentLineup[fromTeam].findIndex(p => p.id === playerId);
+            if (playerIndex !== -1) {
+                const [player] = currentLineup[fromTeam].splice(playerIndex, 1);
+                currentLineup[toTeam].push(player);
+                renderTeams();
+            }
+        }
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function renderTeams() {
+            const renderPosGroup = (teamList, position, containerId, currentTeamName, targetTeamName) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                const filtered = teamList.filter(p => p.position === position);
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-400 italic">Aucun joueur</p>`;
+                    return;
+                }
+
+                filtered.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200/80 shadow-sm text-xs group hover:border-cyan-300 transition-all";
+                    
+                    const btnDirection = currentTeamName === 'blanc' ? 'fa-arrow-right' : 'fa-arrow-left';
+                    const btnTitle = currentTeamName === 'blanc' ? 'Transférer vers Multicolore' : 'Transférer vers Blanc';
+
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-slate-700">${p.name} ${p.type === 'REMPLACANT' ? '<span class="text-[10px] text-amber-600 font-bold">(Sub)</span>' : ''}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-bold text-[11px]">${p.cote}/10</span>
+                            ${currentUser ? `
+                                <button onclick="movePlayer(${p.id}, '${currentTeamName}', '${targetTeamName}')" title="${btnTitle}" class="px-2 py-1 bg-slate-100 hover:bg-cyan-600 hover:text-white text-slate-600 rounded text-[11px] font-bold transition-all flex items-center gap-1">
+                                    <i class="fa-solid ${btnDirection}"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            };
+
+            renderPosGroup(currentLineup.blanc, 'Gardien', 'team-blanc-g', 'blanc', 'multicolore');
+            renderPosGroup(currentLineup.blanc, 'Défenseur', 'team-blanc-d', 'blanc', 'multicolore');
+            renderPosGroup(currentLineup.blanc, 'Attaquant', 'team-blanc-a', 'blanc', 'multicolore');
+
+            renderPosGroup(currentLineup.multicolore, 'Gardien', 'team-multicolore-g', 'multicolore', 'blanc');
+            renderPosGroup(currentLineup.multicolore, 'Défenseur', 'team-multicolore-d', 'multicolore', 'blanc');
+            renderPosGroup(currentLineup.multicolore, 'Attaquant', 'team-multicolore-a', 'multicolore', 'blanc');
+
+            const calcMoyenne = (list) => {
+                if (list.length === 0) return '0.0';
+                const sum = list.reduce((acc, p) => acc + p.cote, 0);
+                return (sum / list.length).toFixed(1);
+            };
+
+            document.getElementById('cote-moy-blanc').innerText = calcMoyenne(currentLineup.blanc);
+            document.getElementById('cote-moy-multicolore').innerText = calcMoyenne(currentLineup.multicolore);
+        }
+
+        function copyLineupText() {
+            let text = `🏒 *ALIGNEMENT DE LA SEMAINE* 🏒\n\n`;
+            
+            text += `⚪ *ÉQUIPE BLANC* (Cote: ${document.getElementById('cote-moy-blanc').innerText})\n`;
+            text += `G: ${currentLineup.blanc.filter(p=>p.position==='Gardien').map(p=>p.name).join(', ') || 'Aucun'}\n`;
+            text += `DEF: ${currentLineup.blanc.filter(p=>p.position==='Défenseur').map(p=>p.name).join(', ') || 'Aucun'}\n`;
+            text += `ATT: ${currentLineup.blanc.filter(p=>p.position==='Attaquant').map(p=>p.name).join(', ') || 'Aucun'}\n\n`;
+
+            text += `🎨 *ÉQUIPE MULTICOLORE* (Cote: ${document.getElementById('cote-moy-multicolore').innerText})\n`;
+            text += `G: ${currentLineup.multicolore.filter(p=>p.position==='Gardien').map(p=>p.name).join(', ') || 'Aucun'}\n`;
+            text += `DEF: ${currentLineup.multicolore.filter(p=>p.position==='Défenseur').map(p=>p.name).join(', ') || 'Aucun'}\n`;
+            text += `ATT: ${currentLineup.multicolore.filter(p=>p.position==='Attaquant').map(p=>p.name).join(', ') || 'Aucun'}\n`;
+
+            navigator.clipboard.writeText(text);
+            alert("Alignement copié dans le presse-papier ! Prêt à coller dans Messenger ou SMS.");
+        }
+
+        function renderPlayersTable() {
+            const tbody = document.getElementById('players-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            const isAdmin = (getUserRole(currentUser) === 'ADMIN');
+
+            // Masquer / afficher l'en-tête de la colonne "Statut Paiement"
+            const statusColHeader = document.querySelector('.payment-status-col');
+            if(statusColHeader) {
+                if(isAdmin) {
+                    statusColHeader.classList.remove('hidden');
+                } else {
+                    statusColHeader.classList.add('hidden');
+                }
+            }
+
+            const search = document.getElementById('search-player').value.toLowerCase();
+            const filterType = document.getElementById('filter-type').value;
+            const filterPos = document.getElementById('filter-position').value;
+
+            const filtered = players.filter(p => {
+                const matchSearch = p.name.toLowerCase().includes(search) || (p.phone && p.phone.includes(search));
+                const matchType = filterType === 'ALL' || p.type === filterType;
+                const matchPos = filterPos === 'ALL' || p.position === filterPos;
+                return matchSearch && matchType && matchPos;
+            });
+
+            filtered.forEach((p, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+
+                let statusBadge = '';
+                if (p.type === 'REGULIER') {
+                    const isPaid = p.paid >= seasonCost;
+                    const isPartial = p.paid > 0 && p.paid < seasonCost;
+                    if(isPaid) statusBadge = `<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Payé (${p.paid}$)</span>`;
+                    else if(isPartial) statusBadge = `<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Partiel (${p.paid}$ / ${seasonCost}$)</span>`;
+                    else statusBadge = `<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">Non payé</span>`;
+                } else {
+                    const games = p.subGames || [];
+                    const unpaidGames = games.filter(g => g.status !== 'PAYE').length;
+                    if (games.length === 0) {
+                        statusBadge = `<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">0 partie</span>`;
+                    } else if (unpaidGames === 0) {
+                        statusBadge = `<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">${games.length} partie(s) - À jour</span>`;
+                    } else {
+                        statusBadge = `<span class="px-2 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">${unpaidGames} impayée(s)</span>`;
+                    }
+                }
+
+                const actionsHtml = currentUser ? `
+                    <button onclick="openPlayerModal(${p.id})" class="p-1.5 text-cyan-600 hover:text-cyan-800 hover:bg-cyan-50 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button onclick="deletePlayer(${p.id})" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded"><i class="fa-solid fa-trash"></i></button>
+                ` : `<span class="text-xs text-slate-400 italic">Lecture seule</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-400">${index + 1}</td>
+                    <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${p.type === 'REGULIER' ? 'bg-cyan-100 text-cyan-800' : 'bg-amber-100 text-amber-800'}">
+                            ${p.type === 'REGULIER' ? 'Régulier' : 'Remplaçant'}
+                        </span>
+                    </td>
+                    <td class="p-3">${p.position}</td>
+                    <td class="p-3 font-bold text-slate-700">${p.cote}/10</td>
+                    <td class="p-3 text-slate-500">${p.phone || '-'}</td>
+                    ${isAdmin ? `<td class="p-3 payment-status-col">${statusBadge}</td>` : ''}
+                    <td class="p-3 text-right space-x-1">${actionsHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderFinanceTable() {
+            const tbody = document.getElementById('finance-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            const reguliers = players.filter(p => p.type === 'REGULIER');
+
+            reguliers.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+
+                const solde = seasonCost - p.paid;
+                const isPaid = p.paid >= seasonCost;
+                const isPartial = p.paid > 0 && p.paid < seasonCost;
+
+                let statusClass = "bg-emerald-100 text-emerald-800";
+                let statusLabel = "À jour";
+                if (isPartial) { statusClass = "bg-amber-100 text-amber-800"; statusLabel = "Incomplet"; }
+                if (p.paid === 0) { statusClass = "bg-rose-100 text-rose-800"; statusLabel = "En attente"; }
+
+                const actionBtn = (getUserRole(currentUser) === 'ADMIN') ? `
+                    <button onclick="openPlayerModal(${p.id})" class="px-2.5 py-1 text-xs font-semibold bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded">Paiement</button>
+                ` : `<span class="text-xs text-slate-400 italic">Accès restreint</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                    <td class="p-3 font-bold text-slate-800">${p.paid.toFixed(2)} $</td>
+                    <td class="p-3 font-semibold ${solde > 0 ? 'text-amber-600' : 'text-slate-400'}">${solde > 0 ? solde.toFixed(2) + ' $' : '0.00 $'}</td>
+                    <td class="p-3 text-xs text-slate-500">${p.date || '-'}</td>
+                    <td class="p-3 text-xs text-slate-600">${p.method || 'Non spécifié'}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${statusClass}">${statusLabel}</span></td>
+                    <td class="p-3 text-right">${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderSubFinanceTable() {
+            const tbody = document.getElementById('sub-finance-table-body');
+            tbody.innerHTML = '';
+
+            const subs = players.filter(p => p.type === 'REMPLACANT');
+
+            if (subs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Aucun remplaçant enregistré.</td></tr>`;
+                return;
+            }
+
+            subs.forEach(sub => {
+                const games = sub.subGames || [];
+                const totalDue = games.reduce((acc, g) => acc + g.amount, 0);
+                const totalPaid = games.filter(g => g.status === 'PAYE').reduce((acc, g) => acc + g.amount, 0);
+                const unpaid = totalDue - totalPaid;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-amber-50/50 transition-colors";
+
+                let gamesDetail = '';
+                if (games.length > 0) {
+                    gamesDetail = games.map(g => {
+                        let payAction = '';
+                        if (g.status === 'PAYE') {
+                            payAction = `<span class="text-emerald-700 font-bold" title="${g.method}">✓ Payé</span>`;
+                        } else {
+                            payAction = currentUser 
+                                ? `<button onclick="markSubGamePaid(${sub.id}, ${g.id})" class="text-xs text-rose-600 font-bold underline hover:text-emerald-600">Régler</button>` 
+                                : `<span class="text-xs text-rose-600 font-bold">Non payé</span>`;
+                        }
+
+                        let deleteBtn = currentUser ? `<button onclick="deleteSubGame(${sub.id}, ${g.id})" class="text-slate-400 hover:text-rose-600 ml-1" title="Supprimer la partie"><i class="fa-solid fa-xmark"></i></button>` : '';
+
+                        return `
+                            <div class="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[11px] mr-1 mb-1">
+                                <span>${g.date}</span>
+                                <span class="font-bold">${g.amount}$</span>
+                                ${payAction}
+                                ${deleteBtn}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    gamesDetail = `<span class="text-xs text-slate-400 italic">Aucune partie enregistrée</span>`;
+                }
+
+                const actionBtn = currentUser ? `
+                    <button onclick="openSubGameModalForPlayer(${sub.id})" class="px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 rounded">
+                        + Partie
+                    </button>
+                ` : `<span class="text-xs text-slate-400 italic">Lecture seule</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-800">${sub.name}</td>
+                    <td class="p-3 max-w-xs">${gamesDetail}</td>
+                    <td class="p-3 font-bold text-slate-800">${totalDue.toFixed(2)} $</td>
+                    <td class="p-3 font-bold text-emerald-700">${totalPaid.toFixed(2)} $</td>
+                    <td class="p-3 font-bold ${unpaid > 0 ? 'text-rose-600' : 'text-slate-400'}">${unpaid.toFixed(2)} $</td>
+                    <td class="p-3 text-right">${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateFinanceStats() {
+            const reguliers = players.filter(p => p.type === 'REGULIER');
+            const subs = players.filter(p => p.type === 'REMPLACANT');
+
+            const totalPercuReg = reguliers.reduce((acc, p) => acc + (p.paid || 0), 0);
+            
+            let totalSubGamesCount = 0;
+            let totalPercuSubs = 0;
+            let totalImpayeSubs = 0;
+
+            subs.forEach(s => {
+                const games = s.subGames || [];
+                totalSubGamesCount += games.length;
+                games.forEach(g => {
+                    if (g.status === 'PAYE') totalPercuSubs += g.amount;
+                    else totalImpayeSubs += g.amount;
+                });
+            });
+
+            const totalPercuCombined = totalPercuReg + totalPercuSubs;
+            const totalAttenduReg = reguliers.length * seasonCost;
+            const soldeCollecterReg = Math.max(0, totalAttenduReg - totalPercuReg);
+            const totalCollecterCombined = soldeCollecterReg + totalImpayeSubs;
+
+            const countPayeReg = reguliers.filter(p => p.paid >= seasonCost).length;
+
+            const elPercu = document.getElementById('total-percu');
+            if(elPercu) elPercu.innerText = totalPercuCombined.toLocaleString('fr-CA', { minimumFractionDigits: 2 }) + ' $';
+            
+            const elPercuSubs = document.getElementById('total-percu-subs');
+            if(elPercuSubs) elPercuSubs.innerText = totalPercuSubs.toLocaleString('fr-CA', { minimumFractionDigits: 2 }) + ' $';
+
+            const elCollecter = document.getElementById('total-a-collecter');
+            if(elCollecter) elCollecter.innerText = totalCollecterCombined.toLocaleString('fr-CA', { minimumFractionDigits: 2 }) + ' $';
+
+            const elImpayeSubs = document.getElementById('total-impaye-subs');
+            if(elImpayeSubs) elImpayeSubs.innerText = totalImpayeSubs.toLocaleString('fr-CA', { minimumFractionDigits: 2 }) + ' $';
+
+            const elCountPaye = document.getElementById('count-paye');
+            if(elCountPaye) elCountPaye.innerText = countPayeReg;
+
+            const elCountReg = document.getElementById('count-total-reg');
+            if(elCountReg) elCountReg.innerText = reguliers.length;
+
+            const elSubGames = document.getElementById('count-sub-games');
+            if(elSubGames) elSubGames.innerText = totalSubGamesCount;
+        }
+
+        // --- JOUEURS MODAL (AJOUT / MODIFICATION / SUPPRESSION) ---
+        function openPlayerModal(id = null) {
+            if(!currentUser) return;
+            const form = document.getElementById('player-form');
+            form.reset();
+
+            if (id) {
+                const player = players.find(p => p.id === id);
+                if (player) {
+                    document.getElementById('modal-title').innerText = "Éditer le Joueur";
+                    document.getElementById('modal-player-id').value = player.id;
+                    document.getElementById('modal-name').value = player.name;
+                    document.getElementById('modal-type').value = player.type;
+                    document.getElementById('modal-position').value = player.position;
+                    document.getElementById('modal-cote').value = player.cote;
+                    document.getElementById('modal-phone').value = player.phone || '';
+                    document.getElementById('modal-paid').value = player.paid || 0;
+                    document.getElementById('modal-pay-date').value = player.date || '';
+                    document.getElementById('modal-pay-method').value = player.method || 'Non spécifié';
+                }
+            } else {
+                document.getElementById('modal-title').innerText = "Nouveau Joueur";
+                document.getElementById('modal-player-id').value = '';
+                document.getElementById('modal-pay-date').value = new Date().toISOString().split('T')[0];
+            }
+
+            toggleModalFieldsByType();
+            document.getElementById('player-modal').classList.remove('hidden');
+        }
+
+        function closePlayerModal() {
+            document.getElementById('player-modal').classList.add('hidden');
+        }
+
+        function toggleModalFieldsByType() {
+            const type = document.getElementById('modal-type').value;
+            const regFields = document.getElementById('regular-payment-fields');
+            const subFields = document.getElementById('sub-history-fields');
+
+            if (type === 'REGULIER') {
+                regFields.classList.remove('hidden');
+                subFields.classList.add('hidden');
+            } else {
+                regFields.classList.add('hidden');
+                subFields.classList.remove('hidden');
+                renderModalSubGamesList();
+            }
+        }
+
+        function renderModalSubGamesList() {
+            const playerId = parseInt(document.getElementById('modal-player-id').value);
+            const container = document.getElementById('modal-sub-games-list');
+            container.innerHTML = '';
+
+            if (!playerId) {
+                container.innerHTML = `<p class="text-slate-400 italic">Enregistrez d'abord le remplaçant pour lui ajouter des parties.</p>`;
+                return;
+            }
+
+            const player = players.find(p => p.id === playerId);
+            if (player && player.subGames && player.subGames.length > 0) {
+                player.subGames.forEach(g => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200";
+                    div.innerHTML = `
+                        <span>${g.date} - <b>${g.amount}$</b> (${g.status === 'PAYE' ? 'Payé' : 'Non payé'})</span>
+                        <button type="button" onclick="deleteSubGame(${player.id}, ${g.id})" class="text-rose-600 font-bold hover:underline">Supprimer</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } else {
+                container.innerHTML = `<p class="text-slate-400 italic">Aucune partie enregistrée</p>`;
+            }
+        }
+
+        function savePlayer(e) {
+            e.preventDefault();
+            if(!currentUser) return;
+
+            const id = parseInt(document.getElementById('modal-player-id').value);
+            const name = document.getElementById('modal-name').value.trim();
+            const type = document.getElementById('modal-type').value;
+            const position = document.getElementById('modal-position').value;
+            const cote = parseFloat(document.getElementById('modal-cote').value) || 7.0;
+            const phone = document.getElementById('modal-phone').value.trim();
+            const paid = parseFloat(document.getElementById('modal-paid').value) || 0;
+            const date = document.getElementById('modal-pay-date').value;
+            const method = document.getElementById('modal-pay-method').value;
+
+            const isAdmin = (getUserRole(currentUser) === 'ADMIN');
+
+            if (id) {
+                const p = players.find(x => x.id === id);
+                if (p) {
+                    p.name = name;
+                    p.type = type;
+                    p.position = position;
+                    p.cote = cote;
+                    p.phone = phone;
+                    if(type === 'REGULIER' && isAdmin) {
+                        p.paid = paid;
+                        p.date = date;
+                        p.method = method;
+                    }
+                }
+            } else {
+                const newPlayer = {
+                    id: Date.now(),
+                    name,
+                    type,
+                    position,
+                    cote,
+                    phone,
+                    paid: (type === 'REGULIER' && isAdmin) ? paid : 0,
+                    date: (type === 'REGULIER' && isAdmin) ? date : '',
+                    method: (type === 'REGULIER' && isAdmin) ? method : 'Non spécifié',
+                    subGames: []
+                };
+                players.push(newPlayer);
+                selectedPresenceIds.add(newPlayer.id);
+            }
+
+            saveStorage();
+            renderPresenceSelector();
+            renderPlayersTable();
+            renderFinanceTable();
+            renderSubFinanceTable();
+            updateFinanceStats();
+            closePlayerModal();
+        }
+
+        function deletePlayer(id) {
+            if(!currentUser) return;
+            if (confirm("Voulez-vous vraiment supprimer ce joueur ?")) {
+                players = players.filter(p => p.id !== id);
+                selectedPresenceIds.delete(id);
+                saveStorage();
+                renderPresenceSelector();
+                renderPlayersTable();
+                renderFinanceTable();
+                renderSubFinanceTable();
+                updateFinanceStats();
+            }
+        }
+
+        // --- SUB GAMES ACTIONS ---
+        function populateSubDropdown() {
+            const select = document.getElementById('sub-game-player-id');
+            select.innerHTML = '';
+            const subs = players.filter(p => p.type === 'REMPLACANT');
+
+            if (subs.length === 0) {
+                select.innerHTML = `<option value="">Aucun remplaçant disponible</option>`;
+                return;
+            }
+
+            subs.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = `${s.name} (${s.position})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function openSubGameModal() {
+            if(!currentUser) return;
+            populateSubDropdown();
+            document.getElementById('sub-game-form').reset();
+            document.getElementById('sub-game-amount').value = subRate;
+            document.getElementById('sub-game-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('sub-game-modal').classList.remove('hidden');
+        }
+
+        function openSubGameModalForPlayer(subId) {
+            openSubGameModal();
+            document.getElementById('sub-game-player-id').value = subId;
+        }
+
+        function openSubGameModalFromPlayer() {
+            const playerId = parseInt(document.getElementById('modal-player-id').value);
+            if(playerId) {
+                closePlayerModal();
+                openSubGameModalForPlayer(playerId);
+            }
+        }
+
+        function closeSubGameModal() {
+            document.getElementById('sub-game-modal').classList.add('hidden');
+        }
+
+        function saveSubGame(e) {
+            e.preventDefault();
+            if(!currentUser) return;
+
+            const subId = parseInt(document.getElementById('sub-game-player-id').value);
+            const date = document.getElementById('sub-game-date').value;
+            const amount = parseFloat(document.getElementById('sub-game-amount').value) || 25;
+            const status = document.getElementById('sub-game-status').value;
+            const method = document.getElementById('sub-game-method').value;
+
+            const player = players.find(p => p.id === subId);
+            if (player) {
+                if (!player.subGames) player.subGames = [];
+                player.subGames.push({
+                    id: Date.now(),
+                    date,
+                    amount,
+                    status,
+                    method
+                });
+
+                saveStorage();
+                renderSubFinanceTable();
+                renderPlayersTable();
+                updateFinanceStats();
+                closeSubGameModal();
+            }
+        }
+
+        function markSubGamePaid(subId, gameId) {
+            if(!currentUser) return;
+            const player = players.find(p => p.id === subId);
+            if (player && player.subGames) {
+                const game = player.subGames.find(g => g.id === gameId);
+                if (game) {
+                    game.status = 'PAYE';
+                    if (game.method === 'Non spécifié') game.method = 'Interac / Virement';
+                    saveStorage();
+                    renderSubFinanceTable();
+                    renderPlayersTable();
+                    updateFinanceStats();
+                }
+            }
+        }
+
+        function deleteSubGame(subId, gameId) {
+            if(!currentUser) return;
+            if (confirm("Supprimer cette partie enregistrée ?")) {
+                const player = players.find(p => p.id === subId);
+                if (player && player.subGames) {
+                    player.subGames = player.subGames.filter(g => g.id !== gameId);
+                    saveStorage();
+                    renderSubFinanceTable();
+                    renderPlayersTable();
+                    updateFinanceStats();
+                    if(!document.getElementById('player-modal').classList.contains('hidden')) {
+                        renderModalSubGamesList();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
