@@ -262,7 +262,7 @@
                                 <th class="p-3">Position</th>
                                 <th class="p-3">Cote (1-10)</th>
                                 <th class="p-3">Téléphone</th>
-                                <th class="p-3">Statut Paiement</th>
+                                <th class="p-3 payment-status-col">Statut Paiement</th>
                                 <th class="p-3 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -735,6 +735,9 @@
             // Désactiver/Activer les inputs financiers
             document.getElementById('season-cost-input').disabled = !isMBellemare;
             document.getElementById('sub-cost-input').disabled = !currentUser;
+
+            // Mettre à jour l'affichage de la table des joueurs
+            renderPlayersTable();
         }
 
         function loadStorage() {
@@ -1066,7 +1069,20 @@
 
         function renderPlayersTable() {
             const tbody = document.getElementById('players-table-body');
+            if(!tbody) return;
             tbody.innerHTML = '';
+
+            const isMBellemare = (currentUser === 'mbellemare');
+
+            // Masquer / afficher l'en-tête de la colonne "Statut Paiement"
+            const statusColHeader = document.querySelector('.payment-status-col');
+            if(statusColHeader) {
+                if(isMBellemare) {
+                    statusColHeader.classList.remove('hidden');
+                } else {
+                    statusColHeader.classList.add('hidden');
+                }
+            }
 
             const search = document.getElementById('search-player').value.toLowerCase();
             const filterType = document.getElementById('filter-type').value;
@@ -1118,7 +1134,7 @@
                     <td class="p-3">${p.position}</td>
                     <td class="p-3 font-bold text-slate-700">${p.cote}/10</td>
                     <td class="p-3 text-slate-500">${p.phone || '-'}</td>
-                    <td class="p-3">${statusBadge}</td>
+                    ${isMBellemare ? `<td class="p-3 payment-status-col">${statusBadge}</td>` : ''}
                     <td class="p-3 text-right space-x-1">${actionsHtml}</td>
                 `;
                 tbody.appendChild(tr);
